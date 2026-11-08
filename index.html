@@ -1,0 +1,520 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Piano Studio V4</title>
+<style>
+:root {
+  --olive:#69734a;
+  --olive-dark:#252b1d;
+  --panel:#20251d;
+  --panel2:#2b3125;
+  --text:#f1f2e9;
+  --muted:#aeb59f;
+  --green:#a9c477;
+  --blue:#64b9ff;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;background:#11150f;color:var(--text);
+  font-family:Arial,sans-serif;padding:22px;
+}
+header{
+  display:flex;justify-content:space-between;align-items:center;
+  flex-wrap:wrap;gap:12px;margin-bottom:22px;
+}
+h1{margin:0;font-size:27px;letter-spacing:1px}
+.subtitle{color:var(--muted);font-size:12px;margin-top:5px}
+.status{color:var(--green);font-size:12px}
+.layout{display:grid;grid-template-columns:1fr 280px;gap:18px}
+.panel{
+  background:var(--panel);border:1px solid #414a34;
+  border-radius:14px;padding:17px;margin-bottom:16px;
+}
+h2{font-size:15px;margin:0 0 15px;color:#dce5c9}
+button,select{
+  background:#414b32;color:white;border:1px solid #65734b;
+  padding:9px 12px;border-radius:7px;cursor:pointer;
+}
+button:hover{background:#586744}
+button:disabled{opacity:.4;cursor:not-allowed}
+select{width:100%;margin-top:7px}
+label{display:block;font-size:12px;color:var(--muted);margin:14px 0 6px}
+input[type=range]{width:100%;accent-color:#a9c477}
+.value{float:right;color:white}
+.top-controls{display:flex;gap:8px;flex-wrap:wrap}
+.primary{background:#71864c;color:#10150b;font-weight:bold}
+.octave-toolbar{
+  display:flex;justify-content:space-between;align-items:center;
+  gap:10px;flex-wrap:wrap;margin-bottom:12px
+}
+.octave-buttons{display:flex;gap:7px}
+.keyboard-area{overflow-x:auto;padding-bottom:8px}
+.octave-block{
+  min-width:510px;background:#151a12;border:1px solid #343d2b;
+  border-radius:9px;padding:10px;margin-bottom:12px;
+}
+.octave-heading{
+  display:flex;justify-content:space-between;
+  font-size:11px;color:var(--muted);margin-bottom:9px
+}
+.keyboard{
+  position:relative;display:flex;height:155px;
+  user-select:none;touch-action:manipulation;
+}
+.white{
+  flex:1;position:relative;background:#eeeede;color:#25251f;
+  border:1px solid #aaa99a;border-radius:0 0 5px 5px;
+  height:100%;padding:0;display:flex;align-items:flex-end;
+  justify-content:center;padding-bottom:8px;font-size:11px;
+  z-index:1;min-width:0;
+}
+.white.active{background:#b8d5ff;box-shadow:inset 0 -7px 12px #5b8bc9}
+.white.correct{background:#a6d47c}
+.black{
+  position:absolute;top:0;height:61%;width:8%;
+  background:#171914;color:#ddd;border:1px solid #080a07;
+  border-radius:0 0 5px 5px;z-index:2;
+  padding:0;display:flex;align-items:flex-end;
+  justify-content:center;padding-bottom:6px;font-size:9px;
+  transform:translateX(-50%);
+}
+.black.active{background:#3574b2;box-shadow:0 0 12px #4ca9ff}
+.black.correct{background:#538c39}
+.led-strip{
+  display:grid;grid-template-columns:repeat(12,1fr);
+  gap:4px;margin-top:9px;height:8px
+}
+.led-strip span{
+  background:#30382a;border-radius:5px;transition:.1s
+}
+.led-strip span.active{background:#4aa8ff;box-shadow:0 0 9px #4aa8ff}
+.led-strip span.correct{background:#9fdb69;box-shadow:0 0 9px #9fdb69}
+.song-title{font-size:19px;margin-bottom:5px}
+.small{font-size:11px;color:var(--muted)}
+.progress{height:6px;background:#3b4332;border-radius:5px;margin:13px 0}
+.progress div{height:100%;width:0;background:var(--green);border-radius:5px}
+.score{font-size:12px;color:var(--green);margin-top:12px}
+.module{
+  display:flex;justify-content:space-between;gap:10px;
+  padding:10px 0;border-bottom:1px solid #39402f;
+  font-size:12px
+}
+.module:last-child{border:0}
+.connected{color:var(--green)}
+.footer{text-align:center;color:#7e8870;font-size:11px;margin-top:20px}
+@media(max-width:800px){.layout{grid-template-columns:1fr}body{padding:12px}}
+</style>
+</head>
+<body>
+
+<header>
+ <div>
+  <h1>PIANO STUDIO <span style="color:#a9c477">V4</span></h1>
+  <div class="subtitle">Modular piano control prototype</div>
+ </div>
+ <div class="status">● Browser audio ready when activated</div>
+</header>
+
+<div class="layout">
+<main>
+ <section class="panel">
+  <h2>Keyboard</h2>
+  <div class="octave-toolbar">
+   <div>
+    <strong id="octaveCount">1 octave</strong>
+    <div class="small" id="keyCount">12 keys</div>
+   </div>
+   <div class="octave-buttons">
+    <button id="removeOctave">− Remove</button>
+    <button class="primary" id="addOctave">＋ Add octave</button>
+   </div>
+  </div>
+  <div class="keyboard-area" id="keyboardArea"></div>
+  <div class="small">Click any key to play it. Use A S D F G H J for white notes and W E T Y U for black notes in octave 4.</div>
+ </section>
+
+ <section class="panel">
+  <h2>Song player</h2>
+  <div class="song-title" id="songTitle">Little melody</div>
+  <div class="small" id="songDescription">A short demonstration tune</div>
+  <label>Choose song</label>
+  <select id="songSelect">
+   <option value="melody">Little melody</option>
+   <option value="scale">C major scale</option>
+   <option value="arpeggio">C major arpeggio</option>
+  </select>
+  <div class="progress"><div id="progressBar"></div></div>
+  <div class="small" id="songTime">0:00 / 0:08</div>
+  <div class="top-controls" style="margin-top:15px">
+   <button class="primary" id="playButton">▶ Play</button>
+   <button id="stopButton">■ Stop</button>
+   <button id="restartButton">↺ Restart</button>
+  </div>
+  <div class="score" id="score">Ready to play</div>
+ </section>
+</main>
+
+<aside>
+ <section class="panel">
+  <h2>Sound settings</h2>
+  <label>Instrument</label>
+  <select id="instrument">
+   <option>Acoustic piano</option>
+   <option>Electric piano</option>
+   <option>Organ</option>
+   <option>Synth</option>
+  </select>
+
+  <label>Volume <span class="value" id="volumeValue">65%</span></label>
+  <input id="volume" type="range" min="0" max="100" value="65">
+
+  <label>Practice speed <span class="value" id="speedValue">100%</span></label>
+  <input id="speed" type="range" min="25" max="150" value="100">
+ </section>
+
+ <section class="panel">
+  <h2>Modules</h2>
+  <div class="module"><span>Main controller</span><span class="connected">● Demo</span></div>
+  <div class="module"><span>Octave modules</span><span id="moduleCount">1</span></div>
+  <div class="small" style="margin-top:12px">
+   This prototype lets you add and remove virtual octave modules. Real hardware connections will be added later.
+  </div>
+ </section>
+
+ <section class="panel">
+  <h2>Keyboard controls</h2>
+  <div class="module"><span>White keys</span><strong>A S D F G H J</strong></div>
+  <div class="module"><span>Black keys</span><strong>W E T Y U</strong></div>
+  <div class="small">Computer keyboard controls currently play octave 4.</div>
+ </section>
+</aside>
+</div>
+
+<div class="footer">
+Piano Studio V4 · Browser-generated audio · Simulated key lights · No physical piano connected
+</div>
+
+<script>
+const NOTE_NAMES=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+const WHITE_NAMES=["C","D","E","F","G","A","B"];
+const BLACK_POSITIONS=[10.7,25,53.6,67.9,82.1];
+
+let octaves=[4];
+let audio=null,master=null;
+let playing=false,playTimer=null,elapsed=0,lastSecond=-1;
+let played=0;
+let currentSong="melody";
+
+const songs={
+ melody:{
+  title:"Little melody",description:"A short demonstration tune",duration:8,
+  notes:[["C4",0],["E4",1],["G4",2],["E4",3],["F4",4],["A4",5],["G4",6],["C4",7]]
+ },
+ scale:{
+  title:"C major scale",description:"A simple ascending and descending scale",duration:8,
+  notes:[["C4",0],["D4",1],["E4",2],["F4",3],["G4",4],["A4",5],["B4",6],["C5",7]]
+ },
+ arpeggio:{
+  title:"C major arpeggio",description:"C, E, G and high C",duration:6,
+  notes:[["C4",0],["E4",1],["G4",2],["C5",3],["G4",4],["E4",5]]
+ }
+};
+
+function noteToMidi(note){
+ const match=note.match(/^([A-G]#?)(-?\d+)$/);
+ if(!match)return null;
+ const semitones={"C":0,"C#":1,"D":2,"D#":3,"E":4,"F":5,"F#":6,"G":7,"G#":8,"A":9,"A#":10,"B":11};
+ return (Number(match[2])+1)*12+semitones[match[1]];
+}
+
+function initAudio(){
+ if(!audio){
+  const AudioContextClass=window.AudioContext||window.webkitAudioContext;
+  if(!AudioContextClass){alert("Your browser does not support Web Audio.");return false;}
+  audio=new AudioContextClass();
+  master=audio.createGain();
+  master.gain.value=Number(document.getElementById("volume").value)/100;
+  master.connect(audio.destination);
+ }
+ if(audio.state==="suspended")audio.resume();
+ return true;
+}
+
+// Multi-harmonic piano-like synthesis. This is not a recorded piano sample.
+function playNote(note,velocity=0.8){
+ if(!initAudio())return;
+ const midi=noteToMidi(note);
+ if(midi===null)return;
+
+ const frequency=440*Math.pow(2,(midi-69)/12);
+ const now=audio.currentTime;
+ const instrument=document.getElementById("instrument").value;
+ const duration=instrument==="Organ"?1.5:2.4;
+ const peak=Number(document.getElementById("volume").value)/100*velocity*0.22;
+
+ const voice=audio.createGain();
+ voice.connect(master);
+
+ const envelope=audio.createGain();
+ envelope.gain.setValueAtTime(0.0001,now);
+ envelope.gain.exponentialRampToValueAtTime(Math.max(0.0002,peak),now+0.012);
+
+ if(instrument==="Organ"){
+  envelope.gain.setTargetAtTime(peak*0.8,now+0.04,0.15);
+  envelope.gain.setTargetAtTime(0.0001,now+duration,0.3);
+ }else{
+  envelope.gain.setTargetAtTime(peak*0.35,now+0.08,0.35);
+  envelope.gain.setTargetAtTime(0.0001,now+1.25,0.65);
+ }
+ envelope.connect(voice);
+
+ let harmonics;
+ if(instrument==="Acoustic piano")harmonics=[1,0.32,0.15,0.07,0.035,0.015];
+ else if(instrument==="Electric piano")harmonics=[1,0.25,0.13,0.06];
+ else if(instrument==="Organ")harmonics=[1,0.45,0.2,0.1];
+ else harmonics=[1,0.35,0.22,0.15,0.08];
+
+ harmonics.forEach((level,index)=>{
+  const osc=audio.createOscillator();
+  const gain=audio.createGain();
+  osc.type=instrument==="Synth"?"sawtooth":"sine";
+  osc.frequency.value=frequency*(index+1);
+  if(instrument==="Acoustic piano")osc.detune.value=index%2?2:-2;
+  gain.gain.value=level;
+  osc.connect(gain);
+  gain.connect(envelope);
+  osc.start(now);
+  osc.stop(now+duration+0.1);
+ });
+
+ // Short filtered noise burst for a piano-like hammer attack.
+ if(instrument==="Acoustic piano"){
+  const length=Math.floor(audio.sampleRate*0.025);
+  const buffer=audio.createBuffer(1,length,audio.sampleRate);
+  const data=buffer.getChannelData(0);
+  for(let i=0;i<length;i++)data[i]=(Math.random()*2-1)*(1-i/length);
+  const noise=audio.createBufferSource();
+  const filter=audio.createBiquadFilter();
+  const noiseGain=audio.createGain();
+  noise.buffer=buffer;
+  filter.type="highpass";
+  filter.frequency.value=1700;
+  noiseGain.gain.setValueAtTime(peak*0.13,now);
+  noiseGain.gain.exponentialRampToValueAtTime(0.0001,now+0.025);
+  noise.connect(filter);
+  filter.connect(noiseGain);
+  noiseGain.connect(voice);
+  noise.start(now);
+ }
+}
+
+function buildKeyboard(){
+ const area=document.getElementById("keyboardArea");
+ area.innerHTML="";
+
+ octaves.forEach((octave,index)=>{
+  const block=document.createElement("section");
+  block.className="octave-block";
+
+  const heading=document.createElement("div");
+  heading.className="octave-heading";
+  heading.innerHTML=`<span>OCTAVE ${index+1} · C${octave}–B${octave}</span><span>12 keys</span>`;
+
+  const keyboard=document.createElement("div");
+  keyboard.className="keyboard";
+
+  WHITE_NAMES.forEach(name=>{
+   const key=document.createElement("button");
+   key.className="white";
+   key.dataset.note=name+octave;
+   key.textContent=name;
+   key.addEventListener("click",()=>pressKey(key.dataset.note));
+   keyboard.appendChild(key);
+  });
+
+  ["C#","D#","F#","G#","A#"].forEach((name,i)=>{
+   const key=document.createElement("button");
+   key.className="black";
+   key.dataset.note=name+octave;
+   key.style.left=BLACK_POSITIONS[i]+"%";
+   key.textContent=name;
+   key.addEventListener("click",()=>pressKey(key.dataset.note));
+   keyboard.appendChild(key);
+  });
+
+  const leds=document.createElement("div");
+  leds.className="led-strip";
+  leds.dataset.octave=octave;
+  for(let i=0;i<12;i++)leds.appendChild(document.createElement("span"));
+
+  block.append(heading,keyboard,leds);
+  area.appendChild(block);
+ });
+
+ document.getElementById("octaveCount").textContent=octaves.length+" octave"+(octaves.length===1?"":"s");
+ document.getElementById("keyCount").textContent=(octaves.length*12)+" keys";
+ document.getElementById("moduleCount").textContent=octaves.length;
+}
+
+function clearLights(){
+ document.querySelectorAll(".white,.black").forEach(k=>k.classList.remove("active","correct"));
+ document.querySelectorAll(".led-strip span").forEach(k=>k.classList.remove("active","correct"));
+}
+
+function lightNote(note,type="active"){
+ const key=document.querySelector(`[data-note="${note}"]`);
+ if(key)key.classList.add(type);
+
+ const octave=note.match(/-?\d+$/)?.[0];
+ const name=note.replace(/-?\d+$/,"");
+ const strip=document.querySelector(`.led-strip[data-octave="${octave}"]`);
+ const index=NOTE_NAMES.indexOf(name);
+ if(strip&&index>=0)strip.children[index].classList.add(type);
+}
+
+function pressKey(note){
+ if(!document.querySelector(`[data-note="${note}"]`))return;
+ playNote(note);
+ clearLights();
+ lightNote(note,"correct");
+ played++;
+ document.getElementById("score").textContent=played+" notes played";
+ setTimeout(()=>{
+  const key=document.querySelector(`[data-note="${note}"]`);
+  if(key)key.classList.remove("correct");
+  const octave=note.match(/-?\d+$/)?.[0];
+  const index=NOTE_NAMES.indexOf(note.replace(/-?\d+$/,""));
+  const strip=document.querySelector(`.led-strip[data-octave="${octave}"]`);
+  if(strip&&strip.children[index])strip.children[index].classList.remove("correct");
+ },400);
+}
+
+function addOctave(){
+ if(octaves.length>=7){alert("The demo supports up to 7 octaves.");return;}
+ octaves.push(octaves[octaves.length-1]+1);
+ buildKeyboard();
+}
+
+function removeOctave(){
+ if(octaves.length<=1){alert("You need at least one octave.");return;}
+ octaves.pop();
+ buildKeyboard();
+}
+
+document.getElementById("addOctave").onclick=addOctave;
+document.getElementById("removeOctave").onclick=removeOctave;
+
+document.getElementById("volume").oninput=e=>{
+ document.getElementById("volumeValue").textContent=e.target.value+"%";
+ if(master&&audio)master.gain.setTargetAtTime(Number(e.target.value)/100,audio.currentTime,0.02);
+};
+
+document.getElementById("speed").oninput=e=>{
+ document.getElementById("speedValue").textContent=e.target.value+"%";
+};
+
+function updateSongDisplay(){
+ const song=songs[currentSong];
+ document.getElementById("songTitle").textContent=song.title;
+ document.getElementById("songDescription").textContent=song.description;
+ document.getElementById("songTime").textContent="0:00 / 0:"+String(song.duration).padStart(2,"0");
+ document.getElementById("progressBar").style.width="0%";
+}
+
+function updatePlayback(){
+ const song=songs[currentSong];
+ clearLights();
+
+ const next=song.notes.find(n=>n[1]>=Math.floor(elapsed));
+ if(next)lightNote(next[0],"active");
+
+ document.getElementById("songTime").textContent=
+  "0:"+String(Math.floor(elapsed)).padStart(2,"0")+
+  " / 0:"+String(song.duration).padStart(2,"0");
+
+ document.getElementById("progressBar").style.width=
+  Math.min(100,elapsed/song.duration*100)+"%";
+}
+
+function stopPlayback(){
+ playing=false;
+ clearInterval(playTimer);
+ document.getElementById("playButton").textContent="▶ Play";
+}
+
+function playbackTick(){
+ const song=songs[currentSong];
+ elapsed+=0.1*Number(document.getElementById("speed").value)/100;
+ const second=Math.floor(elapsed);
+
+ if(second!==lastSecond){
+  lastSecond=second;
+  song.notes.filter(n=>n[1]===second).forEach(n=>playNote(n[0],0.55));
+ }
+ if(elapsed>=song.duration){
+  elapsed=song.duration;
+  updatePlayback();
+  stopPlayback();
+  return;
+ }
+ updatePlayback();
+}
+
+document.getElementById("playButton").onclick=()=>{
+ if(playing){stopPlayback();return;}
+ if(!initAudio())return;
+ if(elapsed>=songs[currentSong].duration)elapsed=0;
+ lastSecond=-1;
+ playing=true;
+ document.getElementById("playButton").textContent="Ⅱ Pause";
+ playTimer=setInterval(playbackTick,100);
+};
+
+document.getElementById("stopButton").onclick=()=>{
+ stopPlayback();
+ elapsed=0;
+ updatePlayback();
+};
+
+document.getElementById("restartButton").onclick=()=>{
+ stopPlayback();
+ elapsed=0;
+ updatePlayback();
+};
+
+document.getElementById("songSelect").onchange=e=>{
+ stopPlayback();
+ currentSong=e.target.value;
+ elapsed=0;
+ updateSongDisplay();
+};
+
+const computerKeys={
+ a:"C4",w:"C#4",s:"D4",e:"D#4",d:"E4",
+ f:"F4",t:"F#4",g:"G4",y:"G#4",h:"A4",
+ u:"A#4",j:"B4"
+};
+
+const held=new Set();
+document.addEventListener("keydown",e=>{
+ if(e.repeat||e.ctrlKey||e.altKey||e.metaKey)return;
+ const note=computerKeys[e.key.toLowerCase()];
+ if(note&&!held.has(note)){
+  held.add(note);
+  pressKey(note);
+ }
+});
+document.addEventListener("keyup",e=>{
+ const note=computerKeys[e.key.toLowerCase()];
+ if(note)held.delete(note);
+});
+window.addEventListener("blur",()=>held.clear());
+
+buildKeyboard();
+updateSongDisplay();
+</script>
+</body>
+</html>
